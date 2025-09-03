@@ -1493,8 +1493,10 @@ build_facebooktransform360() {
 
 build_libbluray() {
   unset JDK_HOME # #268 was causing failure
-  do_git_checkout https://code.videolan.org/videolan/libbluray.git
-  cd libbluray_git
+  # do_git_checkout https://code.videolan.org/videolan/libbluray.git
+  # cd libbluray_git
+  download_and_unpack_file https://download.videolan.org/pub/videolan/libbluray/1.3.4/libbluray-1.3.4.tar.bz2
+  cd libbluray-1.3.4
     if [[ ! -d .git/modules ]]; then
       git submodule update --init --remote # For UDF support [default=enabled], which strangely enough is in another repository.
     else
@@ -1517,10 +1519,11 @@ build_libbluray() {
         sed -i.bak "/WIN32$/,+4d" src/udfread.c # Fix WinXP incompatibility.
       fi
       if [[ ! -f src/udfread-version.h ]]; then
-        generic_meson
+        meson setup builddir --prefix=$mingw_w64_x86_64_prefix --buildtype=release
       fi
     cd ../..
-    generic_meson
+    generic_configure "--disable-examples --disable-bdjava-jar"
+    do_make_and_make_install "CPPFLAGS=\"-Ddec_init=libbr_dec_init\""
   cd ..
 }
 
