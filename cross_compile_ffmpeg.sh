@@ -1702,15 +1702,12 @@ build_libcaca() {
 }
 
 build_libdecklink() {
-  local url=https://notabug.org/RiCON/decklink-headers.git
-  git ls-remote $url
-  if [ $? -ne 0 ]; then
-    # If NotABug.org server is down , Change to use GitLab.com .
-    # https://gitlab.com/m-ab-s/decklink-headers
-    url=https://gitlab.com/m-ab-s/decklink-headers.git
-  fi
-  do_git_checkout $url
+  # local url=https://gitlab.com/m-ab-s/decklink-headers.git
+  # git ls-remote $url
+  # do_git_checkout $url
+  git clone https://github.com/nanake/decklink-headers.git decklink-headers_git
   cd decklink-headers_git
+    git checkout -b SDK-12.9 origin/SDK/12.9
     do_make_install PREFIX=$mingw_w64_x86_64_prefix
   cd ..
 }
