@@ -2528,7 +2528,7 @@ build_ffmpeg() {
     config_options+=" --extra-libs=-lpthread" # for some reason various and sundry needed this linux native
 
     config_options+=" --extra-cflags=-DLIBTWOLAME_STATIC --extra-cflags=-DMODPLUG_STATIC --extra-cflags=-DCACA_STATIC" # if we ever do a git pull then it nukes changes, which overrides manual changes to configure, so just use these for now :|
-    if [[ $build_amd_amf = n || $bits_target = "32" ]]; then
+    if [[ $build_amd_amf = n ]]; then
       config_options+=" --disable-amf" # Since its autodetected we have to disable it if we do not want it. #unless we define no autodetection but.. we don't.
     else
       config_options+=" --enable-amf" # This is actually autodetected but for consistency.. we might as well set it.
@@ -2710,7 +2710,7 @@ build_ffmpeg_dependencies() {
   build_liblzma # Lzma in FFmpeg is autodetected. Uses dlfcn.
   build_iconv # Iconv in FFmpeg is autodetected. Uses dlfcn.
   build_sdl2 # Sdl2 in FFmpeg is autodetected. Needed to build FFPlay. Uses iconv and dlfcn.
-  if [[ $build_amd_amf = y && $bits_target != "32" ]]; then
+  if [[ $build_amd_amf = y ]]; then
     build_amd_amf_headers
   fi
   if [[ $build_intel_qsv = y && $compiler_flavors != "native" ]]; then # Broken for native builds right now: https://github.com/lu-zero/mfx_dispatch/issues/71
@@ -2874,7 +2874,7 @@ build_dependencies=y
 git_get_latest=y
 prefer_stable=y # Only for x264 and x265.
 build_intel_qsv=y # note: not windows xp friendly!
-build_amd_amf=n
+build_amd_amf=y
 disable_nonfree=y # comment out to force user y/n selection
 original_cflags='-mtune=generic -O3' # high compatible by default, see #219, some other good options are listed below, or you could use -march=native to target your local box:
 original_cppflags='-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0' # Needed for mingw-w64 7 as FORTIFY_SOURCE is now partially implemented, but not actually working
