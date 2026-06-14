@@ -2531,6 +2531,7 @@ build_ffmpeg() {
     if [[ $build_amd_amf = n ]]; then
       config_options+=" --disable-amf" # Since its autodetected we have to disable it if we do not want it. #unless we define no autodetection but.. we don't.
     else
+      git apply "$patch_dir/vsrc_amf_timeapi_fix.patch"
       config_options+=" --enable-amf" # This is actually autodetected but for consistency.. we might as well set it.
     fi
 
