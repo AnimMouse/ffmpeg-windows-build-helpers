@@ -848,7 +848,7 @@ mkdir -p 'pkgs' 'source' 'build'
 cd 'pkgs' || print_error
 rm -fr 'config.guess'
 build_progress 'config.guess' 'Downloading'
-wget -nv -O config.guess 'http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD' > >(build_log) 2>&1 || { ping -c 1 git.savannah.gnu.org >/dev/null 2>&1 || printf '\nsavannah.gnu.org seems to be offline right now and is needed to download the file "config.guess", please try again later.\n\n'; rm -f 'config.guess' && exit 1; }
+wget -nv -O config.guess 'https://raw.githubusercontent.com/gcc-mirror/gcc/master/config.guess' > >(build_log) 2>&1 || { ping -c 1 github.com >/dev/null 2>&1 || printf '\nGitHub seems to be offline right now and is needed to download the file "config.guess", please try again later.\n\n'; rm -f 'config.guess' && exit 1; }
 build_progress 'done'
 system_type="$(sh config.guess)"
 
