@@ -2461,7 +2461,8 @@ build_ffmpeg() {
     config_options+=" --enable-libvmaf"
     config_options+=" --enable-libsrt"
     config_options+=" --enable-libxml2"
-    config_options+=" --enable-opengl"
+    # --enable-opengl was removed from FFmpeg's configure upstream (the opengl
+    # output device is gone), and passing it is now a fatal "Unknown option".
     config_options+=" --enable-libdav1d"
     config_options+=" --enable-gnutls"
 
@@ -2502,10 +2503,10 @@ build_ffmpeg() {
         config_options+=" --enable-libsvtvp9"
       fi
       # SVT-AV1
-      # Apply patch on newer versions
-      if [[ $ffmpeg_git_checkout_version != *"n6"* ]] && [[ $ffmpeg_git_checkout_version != *"n5"* ]] && [[ $ffmpeg_git_checkout_version != *"n4"* ]] && [[ $ffmpeg_git_checkout_version != *"n3"* ]] && [[ $ffmpeg_git_checkout_version != *"n2"* ]]; then
-        git apply "$work_dir/SVT-AV1_git/.gitlab/workflows/linux/ffmpeg_n7_fix.patch"
-      fi
+      # The aq_mode/init_handle compatibility patches that used to live in
+      # SVT-AV1's tree (.gitlab/workflows/linux/ffmpeg_n7_fix.patch) are now
+      # merged upstream in FFmpeg itself, and that file no longer exists in
+      # SVT-AV1, so nothing to apply here.
       config_options+=" --enable-libsvtav1"
     fi # else doesn't work/matter with 32 bit
     config_options+=" --enable-libvpx"
