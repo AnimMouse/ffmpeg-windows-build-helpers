@@ -415,7 +415,7 @@ retry_git_or_die() {  # originally from https://stackoverflow.com/a/76012343/324
   for i in $(seq 1 $RETRIES_NO); do
    echo "Downloading (via git clone) $to_dir from $repo_url"
    rm -rf $to_dir.tmp # just in case it was interrupted previously...not sure if necessary...
-   git clone $repo_url $to_dir.tmp --recurse-submodules && break
+   git clone $repo_url $to_dir.tmp --recurse-submodules --filter=blob:none && break
    # get here -> failure
    [[ $i -eq $RETRIES_NO ]] && echo "Failed to execute git cmd $repo_url $to_dir after $RETRIES_NO retries" && exit 1
    echo "sleeping before retry git"
@@ -859,11 +859,19 @@ build_amd_amf_headers() {
   # was https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git too big
   # or https://github.com/DeadSix27/AMF smaller
   # but even smaller!
-  do_git_checkout https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git amf_headers_git
+  # Only amf/public/include is used (copied below), yet the AMF repo vendors a
+  # ~2GB Thirdparty/ tree (including a prebuilt ffmpeg) that is never referenced,
+  # and is itself ~1.4GB of history -- ~6.5GB per arch just to copy some headers.
+  # Clone shallow + blobless + sparse so only amf/public/include comes down.
+  if [ ! -d amf_headers_git/.git ]; then
+    git clone --depth 1 --filter=blob:none --sparse https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git amf_headers_git || exit 1
+    cd amf_headers_git
+      git sparse-checkout set amf/public/include || exit 1
+    cd ..
+  fi
 
   cd amf_headers_git
     if [ ! -f "already_installed" ]; then
-      #rm -rf "./Thirdparty" # ?? plus too chatty...
       if [ ! -d "$mingw_w64_x86_64_prefix/include/AMF" ]; then
         mkdir -p "$mingw_w64_x86_64_prefix/include/AMF"
       fi
@@ -907,7 +915,8 @@ build_libleptonica() {
   do_git_checkout https://github.com/DanBloomberg/leptonica.git leptonica_git 1.82.0
   cd leptonica_git
     export CPPFLAGS="-DOPJ_STATIC"
-    generic_configure_make_install
+    generic_configure "--disable-programs" # only the lib is needed; building the prog/ test tools produces >1GB of .exe per arch
+    do_make_and_make_install
     reset_cppflags
   cd ..
 }
@@ -1387,7 +1396,7 @@ build_lame() {
   do_svn_checkout https://svn.code.sf.net/p/lame/svn/trunk/lame lame_svn 
   cd lame_svn
     sed -i.bak '1s/^\xEF\xBB\xBF//' libmp3lame/i386/nasm.h # Remove a UTF-8 BOM that breaks nasm if it's still there; should be fixed in trunk eventually https://sourceforge.net/p/lame/patches/81/
-    generic_configure "--enable-nasm --enable-libmpg123"
+    generic_configure "--enable-nasm --enable-libmpg123 --disable-hardening"
     do_make_and_make_install
   cd ..
 }
@@ -1846,9 +1855,13 @@ build_libaom() {
   else
     local config_options="-DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/x86_64-mingw-gcc.cmake -DAOM_TARGET_CPU=x86_64"
   fi
+  # NOTE: config_options must stay a single quoted arg -- do_cmake_from_build_dir
+  # only reads $2, so an unquoted expansion silently dropped every flag but the
+  # first (aom never actually got -DAOM_TARGET_CPU before this).
+  config_options+=" -DENABLE_TESTS=0 -DENABLE_EXAMPLES=0 -DENABLE_TESTDATA=0 -DENABLE_TOOLS=0 -DENABLE_DOCS=0" # don't build aom's test/example/tool programs
   mkdir -p aom_git/aom_build
   cd aom_git/aom_build
-    do_cmake_from_build_dir .. $config_options
+    do_cmake_from_build_dir .. "$config_options"
     do_make_and_make_install
   cd ../..
 }
@@ -2461,7 +2474,8 @@ build_ffmpeg() {
     config_options+=" --enable-libvmaf"
     config_options+=" --enable-libsrt"
     config_options+=" --enable-libxml2"
-    config_options+=" --enable-opengl"
+    # --enable-opengl was removed from FFmpeg's configure upstream (the opengl
+    # output device is gone), and passing it is now a fatal "Unknown option".
     config_options+=" --enable-libdav1d"
     config_options+=" --enable-gnutls"
 
@@ -2502,10 +2516,10 @@ build_ffmpeg() {
         config_options+=" --enable-libsvtvp9"
       fi
       # SVT-AV1
-      # Apply patch on newer versions
-      if [[ $ffmpeg_git_checkout_version != *"n6"* ]] && [[ $ffmpeg_git_checkout_version != *"n5"* ]] && [[ $ffmpeg_git_checkout_version != *"n4"* ]] && [[ $ffmpeg_git_checkout_version != *"n3"* ]] && [[ $ffmpeg_git_checkout_version != *"n2"* ]]; then
-        git apply "$work_dir/SVT-AV1_git/.gitlab/workflows/linux/ffmpeg_n7_fix.patch"
-      fi
+      # The aq_mode/init_handle compatibility patches that used to live in
+      # SVT-AV1's tree (.gitlab/workflows/linux/ffmpeg_n7_fix.patch) are now
+      # merged upstream in FFmpeg itself, and that file no longer exists in
+      # SVT-AV1, so nothing to apply here.
       config_options+=" --enable-libsvtav1"
     fi # else doesn't work/matter with 32 bit
     config_options+=" --enable-libvpx"
